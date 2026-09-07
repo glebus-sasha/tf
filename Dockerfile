@@ -12,12 +12,28 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libtiff5-dev \
     libjpeg-dev \
-    dos2unix \
+    libx11-dev \
+    libxt-dev \
+    libcairo2-dev \
+    libgit2-dev \
+    libicu-dev \
+    libfontconfig1-dev \
+    libfreetype6-dev \
+    libpq-dev \
+    libsqlite3-dev \
+    libssh2-1-dev \
+    zlib1g-dev \
     pandoc \
+    pandoc-citeproc \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
-# --- CRAN пакеты ---
-RUN R -e "install.packages(c('optparse','data.table','dplyr','tidyr','tibble','readr','stringr','ggplot2','plotly','htmlwidgets','ggrepel'), repos='https://cloud.r-project.org')"
+# --- CRAN пакеты (устанавливаем в правильном порядке) ---
+RUN R -e "install.packages(c('optparse','data.table','dplyr','tidyr','tibble','readr','stringr'), repos='https://cloud.r-project.org')"
+
+RUN R -e "install.packages(c('ggplot2','ggrepel'), repos='https://cloud.r-project.org')"
+
+RUN R -e "install.packages(c('htmlwidgets','plotly'), repos='https://cloud.r-project.org')"
 
 # --- Bioconductor пакеты ---
 RUN R -e "if (!requireNamespace('BiocManager', quietly=TRUE)) install.packages('BiocManager', repos='https://cloud.r-project.org'); BiocManager::install(c('decoupleR','dorothea','limma'), update=FALSE, ask=FALSE)"
