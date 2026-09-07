@@ -26,7 +26,7 @@ suppressPackageStartupMessages({
 })
 
 # ---- DEBUG / DEV PARAMETERS (uncomment for testing) ----
-if (TRUE) {
+if (FALSE) {
   opt <- list(
     tpm_file = "raw/all_samples.gene_tpm.tsv",
     samplesheet = "raw/samplesheet.csv",
