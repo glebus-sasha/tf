@@ -1,0 +1,166 @@
+---
+title: "tf"
+format: html
+editor: visual
+---
+
+## 
+
+```{r}
+#| message: false
+#| warning: false
+library(data.table)
+library(dplyr)
+library(tibble)
+library(tidyr)
+library(decoupleR)
+library(dorothea)
+library(limma)
+
+```
+
+
+```{r}
+counts_file <- "../raw/all_samples.gene_counts.tsv"
+tpm_file <- "../raw/all_samples.gene_tpm.tsv"
+
+counts <- fread(counts_file)
+
+tpm    <- fread(tpm_file)
+```
+
+
+```{r}
+# expression matrix
+expr <- tpm |>
+  select(gene_name, starts_with("R_")) |>
+  filter(!is.na(gene_name), gene_name != "") |>
+  distinct(gene_name, .keep_all = TRUE) |>
+  column_to_rownames("gene_name") |>
+  as.matrix() + 1 |> 
+  log2()
+
+```
+
+```{r}
+data(dorothea_hs)
+regulons <- dorothea_hs |>
+    filter(confidence %in% c("A", "B", "C"))
+```
+
+
+```{r}
+tf_activity <- run_ulm(
+    mat = expr,
+    network = regulons,
+    .source = "tf",
+    .target = "target",
+    .mor = "mor"
+)
+
+tf_mat <- tf_activity |>
+    select(source, condition, score) |>
+    pivot_wider(
+        names_from = condition,
+        values_from = score
+    ) |>
+    column_to_rownames("source") |>
+    as.matrix()
+
+pheatmap::pheatmap(
+    tf_mat,
+    scale = "row"
+)
+```
+## VIPER
+
+```{r}
+tf_activities <- run_viper(
+    input = expr,
+    regulons = regulons,
+    options = list(
+        method = "scale",
+        minsize = 5,
+        eset.filter = FALSE,
+        cores = 1,
+        verbose = FALSE
+    )
+)
+```
+
+# TF DE
+
+```{r}
+sample_info <- data.frame(
+    sample = colnames(tf_activities),
+    group = c(
+        "Pathology",
+        rep("Normal", 6)
+    )
+)
+```
+
+```{r}
+sample_info$group <- factor(
+    sample_info$group,
+    levels = c("Normal", "Pathology")
+)
+```
+
+```{r}
+design <- model.matrix(
+    ~ group,
+    data = sample_info
+)
+
+colnames(design)
+```
+```{r}
+fit <- lmFit(
+    tf_activities,
+    design
+)
+
+fit <- eBayes(fit)
+```
+
+
+```{r}
+tf_stats <- topTable(
+    fit,
+    coef = "groupPathology",
+    number = Inf,
+    adjust.method = "BH",
+    sort.by = "P"
+)
+```
+
+```{r}
+sig_tf <- tf_stats |>
+    filter(
+        adj.P.Val < 1,
+        abs(logFC) > 1
+    )
+```
+
+```{r}
+tf_results <- tf_stats |>
+    rownames_to_column("TF") |>
+    mutate(
+        direction = case_when(
+            logFC > 0 ~ "Activated in pathology",
+            logFC < 0 ~ "Inhibited in pathology",
+            TRUE ~ "No change"
+        )
+    ) |>
+    select(
+        TF,
+        logFC,
+        AveExpr,
+        t,
+        P.Value,
+        adj.P.Val,
+        direction
+    )
+```
+
