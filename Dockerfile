@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 RUN R -e "install.packages(c('optparse','data.table','stringr','plotly','htmlwidgets','ggrepel'), repos='https://cloud.r-project.org')"
 
 # --- Bioconductor пакеты ---
-RUN R -e "if (!requireNamespace('BiocManager', quietly=TRUE)) install.packages('BiocManager', repos='https://cloud.r-project.org'); BiocManager::install(c('decoupleR','dorothea','limma'), update=FALSE, ask=FALSE)"
+RUN R -e "if (!requireNamespace('BiocManager', quietly=TRUE)) install.packages('BiocManager', repos='https://cloud.r-project.org'); BiocManager::install(c('decoupleR','dorothea','limma', 'viper'), update=FALSE, ask=FALSE)"
 
 # --- Папка для скриптов ---
 RUN mkdir -p /usr/local/my-scripts
